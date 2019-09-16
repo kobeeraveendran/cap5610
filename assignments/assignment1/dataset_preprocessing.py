@@ -2,43 +2,53 @@ import csv
 import numpy as np
 
 def load_dataset():
-    with open('dataset/iris.data', 'rb') as file:
-        lines = file.readlines()
+    with open('dataset/iris.data', 'r') as file:
+        lines = csv.reader(file)
 
-    dataset = [[]]
-
-    for i in range(len(lines)):
-
-        new_line = str(lines[i]).split(',')
-
-        features = new_line[:-1]
-        class_label = new_line[-1]
-
-        class_label = class_label.split('-')[1][:-3]
+        dataset = list(lines)[:-1]
         
-        # setosa = 0, versicolour = 1, virginica = 2
+    for row in dataset:
+        class_label = row[4][5:]
+
         if class_label == 'setosa':
-            class_label = 0
+            row[4] = 0
 
-        elif class_label == 'versicolour':
-            class_label = 1
-        
+        elif class_label == 'versicolor':
+            row[4] = 1
+
         else:
-            class_label = 2
-
-        dataset.append([features, class_label])
-        #dataset[i].append(class_label)
+            row[4] = 2
 
     return dataset
 
 # testing
 dataset = load_dataset()
 
-for i in range(len(dataset)):
-    for j in range(len(dataset[0])):
-        print(dataset[i][j])
+import random
 
-def generate_confusion_matrix(predicted_class, actual_class):
-    confusion_matrix = pd.df()
+def train_test_split(dataset, split_ratio):
+    training_set = []
+    test_set = []
 
-    return confusion_matrix
+    random.shuffle(dataset)
+    separation_index = int(split_ratio * len(dataset))
+
+    #print(separation_index)
+
+    training_set = dataset[:separation_index]
+    test_set = dataset[separation_index:]
+
+    return training_set, test_set
+
+training_set, test_set = train_test_split(dataset, 0.7)
+
+
+print('Training set')
+print('size: ', len(training_set))
+for row in training_set:
+    print(row)
+
+print('Test set')
+print('size: ', len(test_set))
+for row in test_set:
+    print(row)
