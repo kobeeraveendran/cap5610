@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+import random
 
 def load_dataset():
     with open('dataset/iris.data', 'r') as file:
@@ -21,10 +22,7 @@ def load_dataset():
 
     return dataset
 
-# testing
 dataset = load_dataset()
-
-import random
 
 def train_test_split(dataset, split_ratio):
     training_set = []
@@ -42,13 +40,5 @@ def train_test_split(dataset, split_ratio):
 
 training_set, test_set = train_test_split(dataset, 0.7)
 
-
-print('Training set')
-print('size: ', len(training_set))
-for row in training_set:
-    print(row)
-
-print('Test set')
-print('size: ', len(test_set))
-for row in test_set:
-    print(row)
+print('Training set size: ', len(training_set))
+print('Test set size: ', len(test_set))
