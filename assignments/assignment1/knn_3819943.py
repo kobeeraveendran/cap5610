@@ -17,5 +17,5 @@ def euclidean_distance(p1, p2):
 
 def cosine_distance(p1, p2):
     
-    return np.dot(p1, p2) / (np.sqrt(np.dot(p1, p1)) * np.sqrt(np.dot(p2, p2)))
+    return 1 - (np.dot(p1, p2) / (np.sqrt(np.dot(p1, p1)) * np.sqrt(np.dot(p2, p2))))
 
