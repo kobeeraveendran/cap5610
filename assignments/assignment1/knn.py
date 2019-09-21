@@ -41,10 +41,11 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
 
     for i, fold in enumerate(folds):
 
-        test_set = folds
-        training_set = folds[:i] + folds[i + 1:]
+        test_set = fold
+        training_set = list(itertools.chain.from_iterable(folds[:i] + folds[i + 1:]))
 
-        dists = np.zeros((len(test_set), len(training_set)))
+        #print('Training set length: ', len(training_set))
+        #print('Test set length: ', len(test_set))
 
         correct = 0
 
@@ -52,15 +53,17 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
 
             nearest_neighbors = []
 
-            for k in range(len(training_set)):
+            for l in range(len(training_set)):
                 
                 if distance_metric == 'euclidean':
-                    print(training_set[k][:-1])
-                    print(test_set[k][:-1])
-                    nearest_neighbors.append((euclidean_distance(training_set[k][:-1], test_set[j][:-1]), training_set[k][:-1]))
+                    
+                    nearest_neighbors.append((euclidean_distance(training_set[l][:-1], test_set[j][:-1]), training_set[l][-1]))
 
                 else:
-                    nearest_neighbors.append((cosine_distance(training_set[k][:-1], test_set[j][:-1]), training_set[k][-1]))
+                    nearest_neighbors.append((cosine_distance(training_set[l][:-1], test_set[j][:-1]), training_set[l][-1]))
+
+            #print('Neighbors (unsorted):')
+            #print(nearest_neighbors)
 
             nearest_neighbors.sort(key = lambda x: x[0])
 
@@ -75,12 +78,12 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
                 else:
                     classes[neighbor[-1]] = 1
 
-            prediction = sorted(classes.items(),  key = lambda x: x[1], reverse = True)[0]
+            prediction = sorted(classes.items(),  key = lambda x: x[1], reverse = True)[0][0]
 
             if prediction == test_set[j][-1]:
                 correct += 1
 
-        accuracy = correct / len(dataset)
+        accuracy = correct / len(test_set)
         accuracies.append(accuracy)
 
     return sum(accuracies) / len(folds)
@@ -92,15 +95,26 @@ def euclidean_distance(p1, p2):
     p1 = np.array(p1)
     p2 = np.array(p2)
 
-    return np.sqrt(np.sum((p1 - p2) ** 2))
+    #print('p1: ', p1)
+    #print('p2: ', p2)
+
+    dist = np.sqrt(np.sum((p1 - p2) ** 2))
+
+    #print('Distance: ', dist)
+
+    return dist
 
 
 def cosine_distance(p1, p2):
 
     p1 = np.array(p1)
     p2 = np.array(p2)
-    
-    return 1 - (np.dot(p1, p2) / (np.sqrt(np.dot(p1, p1)) * np.sqrt(np.dot(p2, p2))))
+
+    dist = 1 - (np.dot(p1, p2) / (np.sqrt(np.dot(p1, p1)) * np.sqrt(np.dot(p2, p2))))
+
+    return dist
 
 
-knn_iterative(k = 5, distance_metric = 'euclidean')
+accuracy = knn_iterative(k = 5, distance_metric = 'euclidean')
+
+print('\n\n\nAccuracy: ', accuracy)

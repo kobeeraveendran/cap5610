@@ -11,6 +11,8 @@ def load_dataset():
     for row in dataset:
         class_label = row[4][5:]
 
+        row[:-1] = list(map(float, row[:-1]))
+
         if class_label == 'setosa':
             row[4] = 0
 
