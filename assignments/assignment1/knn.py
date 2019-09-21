@@ -37,12 +37,16 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
 
     folds = generate_k_folds(dataset, k = 5)
 
+    accuracies = []
+
     for i, fold in enumerate(folds):
 
         test_set = folds
         training_set = folds[:i] + folds[i + 1:]
 
         dists = np.zeros((len(test_set), len(training_set)))
+
+        correct = 0
 
         for j in range(len(test_set)):
 
@@ -71,7 +75,13 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
 
             prediction = sorted(classes.items(),  key = lambda x: x[1], reverse = True)[0]
 
-        
+            if prediction == test_set[j][-1]:
+                correct += 1
+
+        accuracy = correct / len(dataset)
+        accuracies.append(accuracy)
+
+    return np.sum(accuracies) / len(folds)
             
 
 
