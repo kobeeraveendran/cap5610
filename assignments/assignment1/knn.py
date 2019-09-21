@@ -55,6 +55,8 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
             for k in range(len(training_set)):
                 
                 if distance_metric == 'euclidean':
+                    print(training_set[k][:-1])
+                    print(test_set[k][:-1])
                     nearest_neighbors.append((euclidean_distance(training_set[k][:-1], test_set[j][:-1]), training_set[k][:-1]))
 
                 else:
@@ -81,7 +83,7 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
         accuracy = correct / len(dataset)
         accuracies.append(accuracy)
 
-    return np.sum(accuracies) / len(folds)
+    return sum(accuracies) / len(folds)
             
 
 
@@ -99,3 +101,6 @@ def cosine_distance(p1, p2):
     p2 = np.array(p2)
     
     return 1 - (np.dot(p1, p2) / (np.sqrt(np.dot(p1, p1)) * np.sqrt(np.dot(p2, p2))))
+
+
+knn_iterative(k = 5, distance_metric = 'euclidean')
