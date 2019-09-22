@@ -1,5 +1,4 @@
 import numpy as np
-import math
 import argparse
 import itertools
 
@@ -17,21 +16,6 @@ mode = args.m[0].lower()
 print(mode)
 
 dataset = load_dataset()
-
-def k_nearest_neighbors(k = 5, distance_metric = 'euclidean'):
-    
-    folds = generate_k_folds(dataset, k = 5)
-
-    for fold in folds:
-        test_set = folds.pop(fold)
-
-        training_set = list(itertools.chain.from_iterable(folds))
-
-        if distance_metric == 'euclidean':
-            dists = euclidean_distance(test_set, training_set)
-
-        else:
-            dists = cosine_distance(test_set, training_set)
 
 def knn_iterative(k = 5, distance_metric = 'euclidean'):
 
