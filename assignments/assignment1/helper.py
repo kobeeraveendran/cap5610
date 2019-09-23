@@ -104,3 +104,67 @@ def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3, fi
         plt.savefig('plots/' + filename)
 
     return ax
+
+# TODO: maybe move the plotting of the confusion matrix to a standalone function
+def average_confusion_matrices(confusion_matrices):
+
+    agg_cm = np.matrix([[0, 0, 0], [0, 0, 0], [0, 0, 0]])
+
+    for matrix in confusion_matrices:
+        agg_cm = agg_cm + matrix
+
+    agg_cm = np.divide(agg_cm, len(confusion_matrices))
+
+    filename = 'nb_average_cm.png'
+
+    print(agg_cm)
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(agg_cm, interpolation = 'nearest', cmap = plt.cm.Blues)
+    ax.figure.colorbar(im, ax = ax)
+    ax.set(xticks = np.arange(agg_cm.shape[0]), 
+           yticks = np.arange(agg_cm.shape[1]), 
+           xticklabels = ['setosa', 'versicolor', 'virginica'], 
+           yticklabels = ['setosa', 'versicolor', 'virginica'], 
+           xlabel = 'Predicted class', 
+           ylabel = 'True class')
+
+    plt.title('Avg of Naive Bayes CMs', y = 1.12)
+
+    ax.xaxis.set_label_position('top')
+    ax.xaxis.tick_top()
+
+    plt.setp(ax.get_xticklabels(), ha = 'center', rotation_mode = 'anchor')
+
+    threshold = agg_cm.max() / 2
+
+    for i in range(agg_cm.shape[0]):
+        for j in range(agg_cm.shape[1]):
+            ax.text(j, i, format(agg_cm[i, j], '.2f'), ha = 'center', va = 'center', 
+            color = 'white' if agg_cm[i, j] > threshold else 'black')
+
+    fig.tight_layout()
+
+    if filename:
+        if not os.path.isdir('plots'):
+            os.makedirs('plots')
+
+        plt.savefig('plots/' + filename)
+
+# ignore: I only used this to create the aggregate matrix for the best-performing knn condition
+# and one for naive bayes
+'''
+knn_fold1 = np.matrix([[8, 0, 0], [0, 14, 0], [0, 0, 8]])
+knn_fold2 = np.matrix([[9, 0, 0], [0, 10, 0], [0, 0, 11]])
+knn_fold3 = np.matrix([[15, 0, 0], [0, 8, 1], [0, 0, 6]])
+knn_fold4 = np.matrix([[10, 0, 0], [0, 10, 0], [0, 0, 10]])
+knn_fold5 = np.matrix([[8, 0, 0], [0, 5, 2], [0, 1, 14]])
+'''
+
+nb_fold1 = np.matrix([[11, 0, 0], [0, 8, 0], [0, 2, 9]])
+nb_fold2 = np.matrix([[7, 0, 0], [0, 12, 0], [0, 1, 10]])
+nb_fold3 = np.matrix([[12, 0, 0], [0, 8, 1], [0, 1, 8]])
+nb_fold4 = np.matrix([[11, 0, 0], [0, 12, 0], [0, 0, 7]])
+nb_fold5 = np.matrix([[9, 0, 0], [0, 8, 1], [0, 0, 12]])
+
+average_confusion_matrices([nb_fold1, nb_fold2, nb_fold3, nb_fold4, nb_fold5])

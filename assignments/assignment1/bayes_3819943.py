@@ -86,7 +86,7 @@ def naive_bayes(dataset, num_classes):
         )
 
 
-        print('Current fold accurcy: ', accuracy * 100.)
+        print('Current fold accuracy (%): ', accuracy * 100.)
 
     return sum(accuracies) / len(accuracies)
 
