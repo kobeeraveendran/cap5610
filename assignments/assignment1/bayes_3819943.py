@@ -34,30 +34,17 @@ def naive_bayes(dataset, num_classes):
 
         X_test = test_set.iloc[:, 0:4]
         Y_test = test_set.iloc[:, 4]
-
-        #print('X_train')
-        #print(X_train)
-
-        #print('\n\n\nY_train')
-        #print(Y_train)
+        
 
         num_classes = 3
 
         classes = []
-        #prob_classes = []
 
         # separate the dataset by class
 
         for class_index in range(num_classes):
             class_splits = training_set[training_set[4] == class_index].iloc[:, 0:4]
-            #prob_classes.append(len(class_splits))
             classes.append(class_splits)
-            #classes.append(training_set[training_set[4] == class_index].iloc[:, 0:4])
-
-        #print('Rows with class 0: ')
-        #print(classes[0])
-
-        #print(len(classes))
 
 
         # compute and store feature-wise means and standard deviations for each class
@@ -66,23 +53,7 @@ def naive_bayes(dataset, num_classes):
 
         for category in classes:
             means.append(np.mean(category, axis = 0))
-            std_devs.append(np.std(category, axis = 0))  
-
-        #print('Mean[0]')
-        #print(means[0])
-        #print('Std_dev[0]')
-        #print(std_devs[0])
-
-        # compute p(y) for each class
-        #prob_classes = [prob / len(training_set) for prob in prob_classes]
-
-        #print('Class probabilities: ')
-        #print(prob_classes)
-
-        #print(predicted_class)
-
-        #print('\n\n\nMeans: ', means)
-        #print('Standard deviations: ', std_devs)
+            std_devs.append(np.std(category, axis = 0))
 
         predictions = []
 
@@ -90,13 +61,7 @@ def naive_bayes(dataset, num_classes):
             pred = predict(means, std_devs, X_test.iloc[i, :])
             predictions.append(pred)
 
-        #print('Predictions')
-        #print(predictions)
-        #print('Y_test')
-
         actual = Y_test.values.tolist()
-
-        #print(Y_test.values.tolist())
 
         correct = 0
 

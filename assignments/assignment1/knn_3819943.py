@@ -32,9 +32,6 @@ def knn_iterative(k, distance_metric = 'euclidean'):
         predictions = []
         actual = []
 
-        #print('Training set length: ', len(training_set))
-        #print('Test set length: ', len(test_set))
-
         correct = 0
 
         for j in range(len(test_set)):
@@ -49,9 +46,6 @@ def knn_iterative(k, distance_metric = 'euclidean'):
 
                 else:
                     nearest_neighbors.append((cosine_distance(training_set[l][:-1], test_set[j][:-1]), training_set[l][-1]))
-
-            #print('Neighbors (unsorted):')
-            #print(nearest_neighbors)
 
             nearest_neighbors.sort(key = lambda x: x[0])
 
@@ -97,12 +91,7 @@ def euclidean_distance(p1, p2):
     p1 = np.array(p1)
     p2 = np.array(p2)
 
-    #print('p1: ', p1)
-    #print('p2: ', p2)
-
     dist = np.sqrt(np.sum((p1 - p2) ** 2))
-
-    #print('Distance: ', dist)
 
     return dist
 
