@@ -12,6 +12,10 @@ from helper import load_dataset, generate_k_folds, generate_confusion_matrix
 
 dataset = load_dataset()
 
+# primary naive bayes function:
+# inputs: full dataset, number of class categories
+# outputs: average accuracy over all 5 CV folds (for each test set)
+# desc: fits a Gaussian Naive Bayes classifier on training dataset
 def naive_bayes(dataset, num_classes):
 
     folds = generate_k_folds(dataset, k = 5)
@@ -86,12 +90,13 @@ def naive_bayes(dataset, num_classes):
 
     return sum(accuracies) / len(accuracies)
 
+# Gaussian probability distribution function
 def gaussian_likelihood(X, mean, std):
     
     # ask about variants of this formula (i.e. whether std should be squared in first part, under sqrt, etc.)
     return (1 / (np.sqrt(2 * np.pi) * std)) * np.exp(-1 * (X - mean) ** 2 / (2 * std ** 2))
     
-
+# calculates the probabilities of a sample belonging to each class
 def class_probabilities(means, std_devs, input_vector):
 
     probabilites = {}
@@ -107,6 +112,8 @@ def class_probabilities(means, std_devs, input_vector):
 
     return probabilites
 
+# given an input vector of features, associates with the most likely class
+# to which it may belong
 def predict(means, std_devs, input_vector):
     probs = class_probabilities(means, std_devs, input_vector)
 

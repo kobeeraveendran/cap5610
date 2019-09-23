@@ -15,6 +15,7 @@ mode = args.m[0].lower()
 
 dataset = load_dataset()
 
+# follows the KNN algorithm for classification over each fold of k-fold CV
 def knn_iterative(k, distance_metric = 'euclidean'):
 
     folds = generate_k_folds(dataset, 5)
@@ -34,6 +35,7 @@ def knn_iterative(k, distance_metric = 'euclidean'):
 
         correct = 0
 
+        # for each element of the test set, calculates distance between itself and every training set element
         for j in range(len(test_set)):
 
             nearest_neighbors = []
@@ -47,6 +49,7 @@ def knn_iterative(k, distance_metric = 'euclidean'):
                 else:
                     nearest_neighbors.append((cosine_distance(training_set[l][:-1], test_set[j][:-1]), training_set[l][-1]))
 
+            # distances are sorted in ascending order, and the nearest k feature vectors are selected
             nearest_neighbors.sort(key = lambda x: x[0])
 
             nearest_neighbors = nearest_neighbors[:k]
@@ -85,7 +88,7 @@ def knn_iterative(k, distance_metric = 'euclidean'):
     return sum(accuracies) / len(folds)
             
 
-
+# calculates euclidean distance between a pair of feature vectors
 def euclidean_distance(p1, p2):
 
     p1 = np.array(p1)
@@ -95,7 +98,7 @@ def euclidean_distance(p1, p2):
 
     return dist
 
-
+# calculates (1 - cosine similarity) for a pair of feature vectors
 def cosine_distance(p1, p2):
 
     p1 = np.array(p1)

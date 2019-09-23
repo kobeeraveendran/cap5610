@@ -11,6 +11,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+# loads dataset from 'iris.data' in root project directory
+# as a 2-dimensional list of lists
+# rows = training + testing examples
+# cols = labels
+#   > cols 0 - 3: features
+#   > col 4: class label, encoded from string to integer
 def load_dataset():
     with open('iris.data', 'r') as file:
         lines = csv.reader(file)
@@ -33,6 +39,10 @@ def load_dataset():
 
     return dataset
 
+# splits the dataset loaded by the function above 
+# into k-equally partitioned sections
+# where one partition serves as the test set and 
+# all others become the training set
 def generate_k_folds(dataset, k = 5):
 
     random.shuffle(dataset)
@@ -43,20 +53,14 @@ def generate_k_folds(dataset, k = 5):
 
     return folds
 
-def train_test_split(dataset, split_ratio):
-    training_set = []
-    test_set = []
 
-    random.shuffle(dataset)
-    separation_index = int(split_ratio * len(dataset))
-
-    #print(separation_index)
-
-    training_set = dataset[:separation_index]
-    test_set = dataset[separation_index:]
-
-    return training_set, test_set
-
+# generates text-based and plot-based confusion matrix
+# inputs:
+#   - actual: array of the actual class labels for the test set
+#   - predicted: array of the predicted class labels for every element of the test set
+#   - plot_title: string representing title of the confusion matrix (for matplotlib plot)
+#   - num_classes: number of unique classes in dataset
+#   - filename: if provided, saves the plot of the confusion matrix locally in folder 'plots'
 def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3, filename = None):
     confusion_matrix = np.zeros((num_classes, num_classes), dtype = int)
 
@@ -65,14 +69,6 @@ def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3, fi
 
     print('\n\n' + plot_title)
     print(confusion_matrix)
-
-    # optional heatmap for better visual idea
-    
-    # ask if seaborn is allowed
-    #plt.figure(figsize = (10, 7))
-    #sns.set(font_scale = 1.4)
-    #sns.heatmap(pd.DataFrame(confusion_matrix), annot = True)
-    #plt.show()
 
     # using matplotlib only
     fig, ax = plt.subplots()
@@ -108,14 +104,3 @@ def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3, fi
         plt.savefig('plots/' + filename)
 
     return ax
-
-#training_set, test_set = train_test_split(dataset, 0.7)
-
-#print('Training set size: ', len(training_set))
-#print('Test set size: ', len(test_set))
-
-#print(generate_k_folds(dataset))
-
-#plot = generate_confusion_matrix([2, 0, 2, 2, 0, 1], [0, 0, 2, 2, 0, 2], 'Test confusion matrix', filename = 'test_confusion_matrix.png')
-
-#plt.show(plot)
