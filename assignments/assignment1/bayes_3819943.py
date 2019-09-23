@@ -90,10 +90,13 @@ def naive_bayes(dataset, num_classes):
             pred = predict(means, std_devs, X_test.iloc[i, :])
             predictions.append(pred)
 
-        print('Predictions')
-        print(predictions)
-        print('Y_test')
-        print(Y_test.values.tolist())
+        #print('Predictions')
+        #print(predictions)
+        #print('Y_test')
+
+        actual = Y_test.values.tolist()
+
+        #print(Y_test.values.tolist())
 
         correct = 0
 
@@ -102,9 +105,19 @@ def naive_bayes(dataset, num_classes):
                 correct += 1
 
         accuracy = correct / len(Y_test)
-        print(accuracy)
 
         accuracies.append(accuracy)
+
+        cm = generate_confusion_matrix(
+            actual, 
+            predictions, 
+            plot_title = 'Naive Bayes fold {}'.format(index + 1), 
+            num_classes = 3, 
+            filename = 'naive_bayes_fold{}'.format(index + 1)
+        )
+
+
+        print('Current fold accurcy: ', accuracy * 100.)
 
     return sum(accuracies) / len(accuracies)
 
@@ -144,4 +157,4 @@ def predict(means, std_devs, input_vector):
 
 accuracy = naive_bayes(dataset, num_classes = 3)
 
-print('Naive Bayes Average accuracy: ', accuracy)
+print('\n\nNaive Bayes Average accuracy (%): ', accuracy * 100.)

@@ -63,7 +63,7 @@ def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3, fi
     for i in range(len(actual)):
         confusion_matrix[actual[i]][predicted[i]] += 1
 
-    print(plot_title + '\n\n')
+    print('\n\n' + plot_title)
     print(confusion_matrix)
 
     # optional heatmap for better visual idea
@@ -102,7 +102,8 @@ def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3, fi
     fig.tight_layout()
 
     if filename:
-        os.makedirs('plots')
+        if not os.path.isdir('plots'):
+            os.makedirs('plots')
 
         plt.savefig('plots/' + filename)
 

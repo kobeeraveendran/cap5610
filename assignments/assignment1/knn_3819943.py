@@ -2,7 +2,7 @@ import numpy as np
 import argparse
 import itertools
 
-from helper import load_dataset, generate_k_folds
+from helper import load_dataset, generate_k_folds, generate_confusion_matrix
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-k', type = int, nargs = 1)
@@ -13,13 +13,14 @@ args = parser.parse_args()
 k = args.k[0]
 mode = args.m[0].lower()
 
-print(mode)
-
 dataset = load_dataset()
 
-def knn_iterative(k = 5, distance_metric = 'euclidean'):
+def knn_iterative(k, distance_metric = 'euclidean'):
 
-    folds = generate_k_folds(dataset, k = 5)
+    folds = generate_k_folds(dataset, 5)
+
+    print('K: ', k)
+    print('Distance metric: ', distance_metric)
 
     accuracies = []
 
@@ -27,6 +28,9 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
 
         test_set = fold
         training_set = list(itertools.chain.from_iterable(folds[:i] + folds[i + 1:]))
+
+        predictions = []
+        actual = []
 
         #print('Training set length: ', len(training_set))
         #print('Test set length: ', len(test_set))
@@ -66,8 +70,22 @@ def knn_iterative(k = 5, distance_metric = 'euclidean'):
 
             if prediction == test_set[j][-1]:
                 correct += 1
+                
+            predictions.append(prediction)
+            actual.append(test_set[j][-1])
+
+        cm = generate_confusion_matrix(
+            actual, 
+            predictions, 
+            'KNN k = {} dist_metric = {} fold {}'.format(k, distance_metric, i + 1), 
+            num_classes = 3, 
+            filename = 'knn_k{}_metric_{}_fold{}'.format(k, distance_metric, i + 1)
+            )
 
         accuracy = correct / len(test_set)
+
+        print('Current fold accuracy (%): ', accuracy * 100.)
+
         accuracies.append(accuracy)
 
     return sum(accuracies) / len(folds)
@@ -99,6 +117,6 @@ def cosine_distance(p1, p2):
     return dist
 
 
-accuracy = knn_iterative(k = 5, distance_metric = 'euclidean')
+accuracy = knn_iterative(k, distance_metric = mode)
 
-print('\n\n\nAccuracy: ', accuracy)
+print('\n\n\nK Nearest Neighbors Average Accuracy (%): ', accuracy * 100)
