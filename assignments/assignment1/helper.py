@@ -1,9 +1,15 @@
+# Kobee Raveendran
+# University of Central Florida
+# CAP5610 Assignment 1 - Fall 2019
+# 9/13/2019
+
 import csv
 import numpy as np
 import random
 import pandas as pd
-import seaborn as sns
+#import seaborn as sns
 import matplotlib.pyplot as plt
+import os
 
 def load_dataset():
     with open('iris.data', 'r') as file:
@@ -51,12 +57,13 @@ def train_test_split(dataset, split_ratio):
 
     return training_set, test_set
 
-def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3):
+def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3, filename = None):
     confusion_matrix = np.zeros((num_classes, num_classes), dtype = int)
 
     for i in range(len(actual)):
         confusion_matrix[actual[i]][predicted[i]] += 1
 
+    print(plot_title + '\n\n')
     print(confusion_matrix)
 
     # optional heatmap for better visual idea
@@ -94,6 +101,11 @@ def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3):
 
     fig.tight_layout()
 
+    if filename:
+        os.makedirs('plots')
+
+        plt.savefig('plots/' + filename)
+
     return ax
 
 #training_set, test_set = train_test_split(dataset, 0.7)
@@ -103,6 +115,6 @@ def generate_confusion_matrix(actual, predicted, plot_title, num_classes = 3):
 
 #print(generate_k_folds(dataset))
 
-plot = generate_confusion_matrix([2, 0, 2, 2, 0, 1], [0, 0, 2, 2, 0, 2], 'Test confusion matrix')
+#plot = generate_confusion_matrix([2, 0, 2, 2, 0, 1], [0, 0, 2, 2, 0, 2], 'Test confusion matrix', filename = 'test_confusion_matrix.png')
 
-plt.show(plot)
+#plt.show(plot)

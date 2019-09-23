@@ -1,9 +1,14 @@
+# Kobee Raveendran
+# University of Central Florida
+# CAP5610 Assignment 1 - Fall 2019
+# 9/21/2019
+
 import numpy as np
 import argparse
 import itertools
 import pandas as pd
 
-from helper import load_dataset, generate_k_folds
+from helper import load_dataset, generate_k_folds, generate_confusion_matrix
 
 dataset = load_dataset()
 
@@ -21,15 +26,9 @@ def naive_bayes(dataset, num_classes):
         test_size = len(test_set)
         training_size = len(training_set)
 
-        print(test_size)
-        print(training_size)
-
         test_set = pd.DataFrame(test_set)
         training_set = pd.DataFrame(training_set)
 
-        print(test_set)
-
-        # separate by class value
         X_train = training_set.iloc[:, 0:4]
         Y_train = training_set.iloc[:, 4]
 
@@ -45,20 +44,20 @@ def naive_bayes(dataset, num_classes):
         num_classes = 3
 
         classes = []
-        prob_classes = []
+        #prob_classes = []
 
         # separate the dataset by class
 
         for class_index in range(num_classes):
             class_splits = training_set[training_set[4] == class_index].iloc[:, 0:4]
-            prob_classes.append(len(class_splits))
+            #prob_classes.append(len(class_splits))
             classes.append(class_splits)
             #classes.append(training_set[training_set[4] == class_index].iloc[:, 0:4])
 
-        print('Rows with class 0: ')
-        print(classes[0])
+        #print('Rows with class 0: ')
+        #print(classes[0])
 
-        print(len(classes))
+        #print(len(classes))
 
 
         # compute and store feature-wise means and standard deviations for each class
@@ -69,37 +68,16 @@ def naive_bayes(dataset, num_classes):
             means.append(np.mean(category, axis = 0))
             std_devs.append(np.std(category, axis = 0))  
 
-        print('Mean[0]')
-        print(means[0])
-        print('Std_dev[0]')
-        print(std_devs[0])
+        #print('Mean[0]')
+        #print(means[0])
+        #print('Std_dev[0]')
+        #print(std_devs[0])
 
         # compute p(y) for each class
-        prob_classes = [prob / len(training_set) for prob in prob_classes]
+        #prob_classes = [prob / len(training_set) for prob in prob_classes]
 
-        print('Class probabilities: ')
-        print(prob_classes)
-
-        #probabilities_list = []
-
-        #for i in range(num_classes):
-        #    probabilities_list.append(posterior(X_test, classes[i], means[i], std_devs[i]))
-
-
-        '''
-        prob = (feature_likelihood(classes[0], means[0], std_devs[0]) * 
-                feature_likelihood(classes[1], means[1], std_devs[1]) * 
-                feature_likelihood(classes[2], means[2], std_devs[2]) *
-                prob_classes[i])
-        '''
-
-
-
-            #probabilities_list.append(prob)
-
-        #print('Probabilities list: ', probabilities_list)
-
-        #predicted_class = np.argmax(probabilities_list)
+        #print('Class probabilities: ')
+        #print(prob_classes)
 
         #print(predicted_class)
 
@@ -114,6 +92,8 @@ def naive_bayes(dataset, num_classes):
 
         print('Predictions')
         print(predictions)
+        print('Y_test')
+        print(Y_test.values.tolist())
 
         correct = 0
 
@@ -131,7 +111,7 @@ def naive_bayes(dataset, num_classes):
 def gaussian_likelihood(X, mean, std):
     
     # ask about variants of this formula (i.e. whether std should be squared in first part, under sqrt, etc.)
-    return (1 / (np.sqrt(2 * np.pi * std ** 2))) * np.exp(-1 * (X - mean) ** 2 / (2 * std ** 2))
+    return (1 / (np.sqrt(2 * np.pi) * std)) * np.exp(-1 * (X - mean) ** 2 / (2 * std ** 2))
     
 
 def class_probabilities(means, std_devs, input_vector):
@@ -152,7 +132,8 @@ def class_probabilities(means, std_devs, input_vector):
 def predict(means, std_devs, input_vector):
     probs = class_probabilities(means, std_devs, input_vector)
 
-    best_label, max_prob = None, -1
+    best_label = None
+    max_prob = -1
 
     for class_index, prob in probs.items():
         if best_label is None or prob > max_prob:
