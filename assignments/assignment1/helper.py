@@ -160,7 +160,7 @@ knn_fold3 = np.matrix([[15, 0, 0], [0, 8, 1], [0, 0, 6]])
 knn_fold4 = np.matrix([[10, 0, 0], [0, 10, 0], [0, 0, 10]])
 knn_fold5 = np.matrix([[8, 0, 0], [0, 5, 2], [0, 1, 14]])
 '''
-
+'''
 nb_fold1 = np.matrix([[11, 0, 0], [0, 8, 0], [0, 2, 9]])
 nb_fold2 = np.matrix([[7, 0, 0], [0, 12, 0], [0, 1, 10]])
 nb_fold3 = np.matrix([[12, 0, 0], [0, 8, 1], [0, 1, 8]])
@@ -168,3 +168,4 @@ nb_fold4 = np.matrix([[11, 0, 0], [0, 12, 0], [0, 0, 7]])
 nb_fold5 = np.matrix([[9, 0, 0], [0, 8, 1], [0, 0, 12]])
 
 average_confusion_matrices([nb_fold1, nb_fold2, nb_fold3, nb_fold4, nb_fold5])
+'''
