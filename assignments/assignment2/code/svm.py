@@ -8,22 +8,29 @@ def load_dataset():
 
         dataset = list(lines)
 
-    '''
-    X = []
-    Y = []
-    for row in dataset:
-        X.append(list(map(float, row[1:-1])))
-        Y.append(int(row[-1]))
-    '''
+    # convert datatype of columns
+    for i in range(len(dataset)):
+        label = dataset[i][-1]
+        dataset[i] = dataset[i][1:]
+        dataset[i] = [float(x) for x in dataset[i][:-1]]
+        dataset[i].append(int(label))
 
     return dataset
 
 dataset = load_dataset()
-random.shuffle(dataset)
+
 
 def generate_k_folds(dataset, k = 5):
     random.shuffle(dataset)
-    
+
+    X = [[] for i in range(k)]
+    Y = [[] for i in range(k)]
+
+    for fold in range(k):
+        for row in dataset:
+            X[fold].append(list(map(float, row[1:-1])))
+            Y[fold].append(int(row[-1]))
+
     avg, mod = divmod(len(dataset), k)
 
     folds = list(dataset[i * avg + min(i, mod):(i + 1) * avg + min(i + 1, mod)] for i in range(k))
@@ -60,8 +67,8 @@ def train_svm(train, test, kernel_type, class_weights = None, decision_fn_shape 
 
     params = clf.get_params()
 
-train_X, train_Y = dataset[: int(0.8 * len(dataset))]
-test_X, test_Y = dataset[int(0.8 * len(dataset)):]
+train = dataset[: int(0.8 * len(dataset))]
+test = dataset[int(0.8 * len(dataset)):]
 
-print('Training set: \n', train)
-print('\n\nTest set: \n', test)
+#print('Training set: \n', train)
+#print('\n\nTest set: \n', test)
