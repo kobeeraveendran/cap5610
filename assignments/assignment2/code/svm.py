@@ -72,11 +72,13 @@ def train_svm(train, test, kernel_type, class_weights = None, decision_fn_shape 
 
 def svm_clf(train, test, kernel, c = None, degree = 3, gamma = 'auto', class_weights = None, ovr = False):
     
+    
     if kernel == 'poly':
         print('\n\nUsing kernel POLY with gamma = {} and degree = {}'.format(gamma, degree))
 
     else:
         print('\n\nUsing kernel {} with gamma = {}'.format(kernel.upper(), gamma))
+    
     
     X_train, Y_train = train
     X_test, Y_test = test
@@ -114,19 +116,7 @@ def kernel_testing(dataset):
     folds = generate_k_folds(dataset, k = 5)
 
     # results for each hyperparameter are in the form ([accuracies], [training times])
-    results = {
-        'rbf_auto': ([], []),
-        'rbf_scale': ([], []), 
-        'linear_auto': ([], []), 
-        'linear_scale': ([], []), 
-        'poly_degree3': ([], []), 
-        'poly_degree4': ([], []), 
-        'poly_degree5': ([], []), 
-        'poly_auto': ([], []), 
-        'poly_scale': ([], []), 
-        'sigmoid_auto': ([], []), 
-        'sigmoid_scale': ([], [])
-    }
+    results = {}
 
     for i, fold in enumerate(folds):
 
@@ -142,54 +132,69 @@ def kernel_testing(dataset):
         test = (X_test, Y_test)
 
         for kernel in ['rbf', 'linear', 'poly', 'sigmoid']:
-            
-            if kernel == 'poly':
-                for degree in [3, 4, 5]:
-                    key = 'poly_degree' + str(degree)
-                    # part 1 SVMs
-                    acc, time_elapsed = svm_clf(train, test, kernel = kernel, degree = degree)
-                    results[key][0].append(acc)
-                    results[key][1].append(time_elapsed)
-
-                    # part 2 SVMs (same as part1 but with one vs. rest)
-                    acc, time_elapsed = svm_clf(train, test, kernel = kernel, degree = degree, ovr = True)
-                    results[key][0].append(acc)
-                    results[key][1].append(time_elapsed)
-
 
             for gamma in [0.01, 0.1, 1, 10, 100]:
-                key = kernel + '_' + gamma
-                # part 1 SVMs
-                acc, time_elapsed = svm_clf(train, test, kernel = kernel, gamma = gamma)
-                results[key][0].append(acc)
-                results[key][1].append(time_elapsed)
 
-                acc, time_elapsed = svm_clf(train, test, kernel = kernel, ovr = True)
-                results[key][0].append(acc)
-                results[key][1].append(time_elapsed)
+                for c in [0.01, 0.1, 1, 10, 100]:
 
-            for c in [0.01, 0.1, 1, 10, 100]:
-                key = kernel + '_c_' + str(c)
+                    if kernel == 'poly':
+                        for degree in [3, 4, 5]:
 
-                acc, time_elapsed = svm_clf(train, test, kernel = kernel, c = c)
-                results[key][0].append(acc)
-                results[key][1].append(time_elapsed)
+                            key = 'poly_degree=' + str(degree) + '_c=' + str(c) + '_gamma=' + str(gamma)
 
-                acc, time_elapsed = svm_clf(train, test, kernel = kernel, c = c, ovr = True)
-                results[key][0].append(acc)
-                results[key][1].append(time_elapsed)
+                            for ovr in [False, True]:
+
+                                if ovr:
+                                    key += '_ovr'
+
+                                acc, time_elapsed = svm_clf(
+                                    train, 
+                                    test, 
+                                    kernel = kernel, 
+                                    c = c, 
+                                    degree = degree, 
+                                    gamma = gamma, 
+                                    ovr = ovr
+                                )
+
+                                results.setdefault(key, ([], []))
+
+                                results[key][0].append(acc)
+                                results[key][1].append(time_elapsed)
+
+                    else:
+                        key = kernel + '_c=' + str(c) + '_gamma=' + str(gamma)
+
+                        for ovr in [False, True]:
+                            
+                            if ovr:
+                                key += '_ovr'
+
+                            acc, time_elapsed = svm_clf(
+                                train, 
+                                test, 
+                                kernel = kernel, 
+                                c = c, 
+                                gamma = gamma, 
+                                ovr = ovr
+                            )
+
+                            results.setdefault(key, ([], []))
+
+                            results[key][0].append(acc)
+                            results[key][1].append(time_elapsed)
 
     print('\n\nOne vs. One results: \n')
     for key, item in results.items():
         #print(key + ': ', item)
-        print(key + ' avg. accuracy over 5 folds: ', np.mean(item[0][::2]))
-        print(key + ' avg. training time over 5 folds: ', np.mean(item[1][::2]))
+        print(key + ' avg. acc.: ', np.mean(item[0][::2]))
+        print(key + ' avg. training time: ', np.mean(item[1][::2]))
 
 
     print('\n\nOne vs. Rest results: \n')
     for key, item in results.items():
-        print(key + ' one-vs-rest accuracy (avg): ', np.mean(item[0][1::2]))
-        print(key + ' one-vs-rest training time (avg): ', np.mean(item[1][1::2]))
+        print(key + ' OvR accuracy (avg): ', np.mean(item[0][1::2]))
+        print(key + ' OvR training time (avg): ', np.mean(item[1][1::2]))
 
 
 
