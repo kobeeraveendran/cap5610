@@ -1,15 +1,19 @@
 import csv
 from sklearn import svm
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.multiclass import OneVsOneClassifier
 from sklearn.model_selection import GridSearchCV
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 import itertools
+from collections import Counter
 import time
 
 # in case FutureWarning messages show for deprecations of 'gamma'
 from warnings import simplefilter
 simplefilter(action = 'ignore', category = FutureWarning)
+simplefilter(action = 'ignore', category = DeprecationWarning)
 
 def load_dataset():
     with open('../Data/glass.data') as f:
@@ -123,6 +127,16 @@ def kernel_testing(dataset):
     # results for each hyperparameter are in the form ([accuracies], [training times])
     results = {}
 
+    best_params = {
+        'C': [], 
+        'kernel': [], 
+        'gamma': [], 
+        'degree': []
+    }
+
+    best_acc = 0
+    best_params_acc = {}
+
     for i, fold in enumerate(folds):
 
         training_set = list(itertools.chain.from_iterable(folds[:i] +  folds[i + 1:]))
@@ -144,7 +158,7 @@ def kernel_testing(dataset):
             'kernel': ['rbf', 'poly', 'linear', 'sigmoid'], 
             'gamma': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1], 
             'C': [0.01, 0.1, 1, 10, 100], 
-            'degree': [3, 4]
+            'degree': [2, 3, 4]
         }
 
         svc = svm.SVC()
@@ -153,6 +167,9 @@ def kernel_testing(dataset):
         clf.fit(X_train, Y_train)
 
         print(clf.best_params_)
+        for key in clf.best_params_.keys():
+            best_params[key].append(clf.best_params_[key])
+
         print(max(clf.cv_results_['mean_test_score']))
 
         mean_scores = clf.cv_results_['mean_test_score']
@@ -168,9 +185,49 @@ def kernel_testing(dataset):
             gamma = clf.best_params_['gamma'], 
             degree = clf.best_params_['degree']        
         )
-        opt_svm.fit(X_train, Y_train)
 
-        preds = opt_svm.predict(X_test)
+        # heatmap of c vs. gamma
+
+        print('MEAN SCORES SHAPE: ', mean_scores.shape)
+
+        scores = mean_scores.reshape(len(params['C']), len(params['gamma']))
+        plt.figure(fisize = (8, 6))
+        plt.subplots_adjust(left = .2, right = 0.95, bottom = 0.15, top = 0.95)
+        plt.imshow(scores, interpolation = 'nearest', cmap = plt.cm.hot)
+        plt.xlabel('gamma')
+        plt.ylabel('C')
+        plt.colorbar()
+        plt.xticks(np.arange(len(params['gamma'])), params['gamma'], rotation = 45)
+        plt.yticks(np.arange(len(params['C'])), params['C'])
+        plt.show()
+
+        '''
+        plt.figure(figsize=(8, 6))
+        plt.subplots_adjust(left=.2, right=0.95, bottom=0.15, top=0.95)
+        plt.imshow(scores, interpolation='nearest', cmap=plt.cm.hot,
+                norm=MidpointNormalize(vmin=0.2, midpoint=0.92))
+        plt.xlabel('gamma')
+        plt.ylabel('C')
+        plt.colorbar()
+        plt.xticks(np.arange(len(gamma_range)), gamma_range, rotation=45)
+        plt.yticks(np.arange(len(C_range)), C_range)
+        plt.title('Validation accuracy')
+        plt.show()
+        '''
+
+        # extract params for best-performing kernel (for plot)
+        #for i in range(len(mean_scores)):
+        #    print()
+
+        # part 2 comparisons
+
+        ovo_svm = OneVsOneClassifier(opt_svm)
+
+        start = time.time()
+        ovo_svm.fit(X_train, Y_train)
+        elapsed_ovo = time.time() - start
+
+        preds = ovo_svm.predict(X_test)
 
         correct = 0
 
@@ -178,24 +235,82 @@ def kernel_testing(dataset):
             if preds[i] == Y_test[i]:
                 correct +=  1
 
-        acc = correct / len(preds)
+        acc_ovo = correct / len(preds)
 
-        print('Accuracy: ', acc)
+        opt_svm = svm.SVC(
+            C = clf.best_params_['C'], 
+            kernel = clf.best_params_['kernel'], 
+            gamma = clf.best_params_['gamma'], 
+            degree = clf.best_params_['degree']
+        )
 
-    '''
-    print('\n\nOne vs. One results: \n')
-    for key, item in results.items():
-        #print(key + ': ', item)
-        print(key + ' avg. acc.: ', np.mean(item[0][::2]))
-        print(key + ' avg. training time: ', np.mean(item[1][::2]))
+        ovr_svm = OneVsRestClassifier(opt_svm)
+
+        start = time.time()
+        ovr_svm.fit(X_train, Y_train)
+        elapsed_ovr = time.time() - start
+
+        preds = ovr_svm.predict(X_test)
+
+        correct = 0
+
+        for i in range(len(preds)):
+            if preds[i] == Y_test[i]:
+                correct += 1
+
+        acc_ovr = correct / len(preds)
+
+        print('Accuracy (OVO): ', acc_ovo)
+        print('Accuracy (OVR): ', acc_ovr)
+
+        print('Training time (OVO): ', elapsed_ovo)
+        print('Training time (OVR): ', elapsed_ovr)
+
+        # part 4
+        opt_svm_balanced = svm.SVC(
+            C = clf.best_params_['C'], 
+            kernel = clf.best_params_['kernel'], 
+            gamma = clf.best_params_['gamma'], 
+            degree = clf.best_params_['degree'], 
+            class_weight = 'balanced'
+        )
+
+        start = time.time()
+        opt_svm_balanced.fit(X_train, Y_train)
+        elapsed_balanced = time.time() - start
+
+        preds = opt_svm_balanced.predict(X_test)
+
+        correct = 0
+
+        for i in range(len(preds)):
+            if preds[i] == Y_test[i]:
+                correct += 1
+
+        acc_balanced = correct / len(preds)
+
+        print('Accuracy (balanced): ', acc_balanced)
+        print('Training time (balanced): ', elapsed_balanced)
+
+        #if acc > best_acc:
+        #    best_acc = acc
+        #    best_params_acc = clf.best_params_
 
 
-    print('\n\nOne vs. Rest results: \n')
-    for key, item in results.items():
-        print(key + ' OvR accuracy (avg): ', np.mean(item[0][1::2]))
-        print(key + ' OvR training time (avg): ', np.mean(item[1][1::2]))
 
-    '''
+    optimal = {}
 
+    # select the most popular parameters for each parameter category
+    for key in best_params.keys():
+        val, count = Counter(best_params[key]).most_common()[0]
+        optimal[key] = val
+
+    # OR select params that yielded the highest accuracy (above)
+
+    print('\n\nOPTIMAL PARAMETERS: \n', optimal)
+
+    print('\n\nADDITIONAL OPTIMAL PARAMETER (HIGHEST ACC): \n', best_params_acc)
+
+    return optimal, best_params_acc
 
 kernel_testing(dataset)
