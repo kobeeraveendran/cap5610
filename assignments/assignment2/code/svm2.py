@@ -1,6 +1,7 @@
 import csv
 from sklearn import svm
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.model_selection import GridSearchCV
 import numpy as np
 import random
 import itertools
@@ -132,62 +133,56 @@ def kernel_testing(dataset):
         X_test = [x[:-1] for x in test_set]
         Y_test = [y[-1] for y in test_set]
 
+        #print('X_train: \n', X_train)
+
+        #print('\n\nY_train: \n', Y_train)
+
         train = (X_train, Y_train)
         test = (X_test, Y_test)
 
-        for kernel in ['rbf', 'linear', 'poly', 'sigmoid']:
+        params = {
+            'kernel': ['rbf', 'poly', 'linear', 'sigmoid'], 
+            'gamma': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1], 
+            'C': [0.01, 0.1, 1, 10, 100], 
+            'degree': [3, 4]
+        }
 
-            for gamma in [0.001, 0.01, 0.1, 1, 10]:
+        svc = svm.SVC()
 
-                for c in [0.01, 0.1, 1, 10, 100]:
+        clf = GridSearchCV(svc, params, cv = 5)
+        clf.fit(X_train, Y_train)
 
-                    if kernel == 'poly':
-                        for degree in [3, 4, 5]:
+        print(clf.best_params_)
+        print(max(clf.cv_results_['mean_test_score']))
 
-                            key = 'poly_degree=' + str(degree) + '_c=' + str(c) + '_gamma=' + str(gamma)
+        mean_scores = clf.cv_results_['mean_test_score']
+        std_scores = clf.cv_results_['std_test_score']
+        tested_params = clf.cv_results_['params']
 
-                            for ovr in [False, True]:
+        #for i in range(len(mean_scores)):
+        #    print('{:.3f} (+/-){:.3f} for {}'.format(mean_scores[i], std_scores[i] * 2, tested_params[i]))
 
-                                if ovr:
-                                    key += '_ovr'
+        opt_svm = svm.SVC(
+            C = clf.best_params_['C'], 
+            kernel = clf.best_params_['kernel'], 
+            gamma = clf.best_params_['gamma'], 
+            degree = clf.best_params_['degree']        
+        )
+        opt_svm.fit(X_train, Y_train)
 
-                                acc, time_elapsed = svm_clf(
-                                    train, 
-                                    test, 
-                                    kernel = kernel, 
-                                    c = c, 
-                                    degree = degree, 
-                                    gamma = gamma, 
-                                    ovr = ovr
-                                )
+        preds = opt_svm.predict(X_test)
 
-                                results.setdefault(key, ([], []))
+        correct = 0
 
-                                results[key][0].append(acc)
-                                results[key][1].append(time_elapsed)
+        for i in range(len(preds)):
+            if preds[i] == Y_test[i]:
+                correct +=  1
 
-                    else:
-                        key = kernel + '_c=' + str(c) + '_gamma=' + str(gamma)
+        acc = correct / len(preds)
 
-                        for ovr in [False, True]:
-                            
-                            if ovr:
-                                key += '_ovr'
+        print('Accuracy: ', acc)
 
-                            acc, time_elapsed = svm_clf(
-                                train, 
-                                test, 
-                                kernel = kernel, 
-                                c = c, 
-                                gamma = gamma, 
-                                ovr = ovr
-                            )
-
-                            results.setdefault(key, ([], []))
-
-                            results[key][0].append(acc)
-                            results[key][1].append(time_elapsed)
-
+    '''
     print('\n\nOne vs. One results: \n')
     for key, item in results.items():
         #print(key + ': ', item)
@@ -200,6 +195,7 @@ def kernel_testing(dataset):
         print(key + ' OvR accuracy (avg): ', np.mean(item[0][1::2]))
         print(key + ' OvR training time (avg): ', np.mean(item[1][1::2]))
 
+    '''
 
 
 kernel_testing(dataset)
