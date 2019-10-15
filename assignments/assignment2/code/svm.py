@@ -1,7 +1,10 @@
 import csv
 from sklearn import svm
+from sklearn.multiclass import OneVsRestClassifier
+import numpy as np
 import random
 import itertools
+import time
 
 def load_dataset():
     with open('../Data/glass.data') as f:
@@ -67,7 +70,7 @@ def train_svm(train, test, kernel_type, class_weights = None, decision_fn_shape 
 
     params = clf.get_params()
 
-def svm_clf(train, test, kernel, degree = 3, gamma = 'auto', class_weights = None, dec_fn_shape = 'ovo'):
+def svm_clf(train, test, kernel, c = None, degree = 3, gamma = 'auto', class_weights = None, ovr = False):
     
     if kernel == 'poly':
         print('\n\nUsing kernel POLY with gamma = {} and degree = {}'.format(gamma, degree))
@@ -78,8 +81,16 @@ def svm_clf(train, test, kernel, degree = 3, gamma = 'auto', class_weights = Non
     X_train, Y_train = train
     X_test, Y_test = test
 
-    clf = svm.SVC(kernel = kernel, degree = degree, class_weight = class_weights, decision_function_shape = dec_fn_shape)
+    start = time.time()
+
+    if not ovr:        
+        clf = svm.SVC(kernel = kernel, degree = degree, class_weight = class_weights)
+
+    else:
+        clf = OneVsRestClassifier(svm.SVC(kernel = kernel, degree = degree, class_weight = class_weights))
     clf.fit(X_train, Y_train)
+
+    time_elapsed = time.time() - start
 
     preds = clf.predict(X_test)
 
@@ -92,11 +103,30 @@ def svm_clf(train, test, kernel, degree = 3, gamma = 'auto', class_weights = Non
         if Y_test[i] == preds[i]:
             correct += 1
 
-    print('Accuracy: ', correct / len(Y_test))
+    acc = correct / len(Y_test)
 
+    #print('Accuracy: ', acc)
 
+    return acc * 100, time_elapsed
+
+# function to perform all the actions of step 1 of the assignment
 def kernel_testing(dataset):
     folds = generate_k_folds(dataset, k = 5)
+
+    # results for each hyperparameter are in the form ([accuracies], [training times])
+    results = {
+        'rbf_auto': ([], []),
+        'rbf_scale': ([], []), 
+        'linear_auto': ([], []), 
+        'linear_scale': ([], []), 
+        'poly_degree3': ([], []), 
+        'poly_degree4': ([], []), 
+        'poly_degree5': ([], []), 
+        'poly_auto': ([], []), 
+        'poly_scale': ([], []), 
+        'sigmoid_auto': ([], []), 
+        'sigmoid_scale': ([], [])
+    }
 
     for i, fold in enumerate(folds):
 
@@ -105,28 +135,62 @@ def kernel_testing(dataset):
 
         X_train = [x[:-1] for x in training_set]
         Y_train = [y[-1] for y in training_set]
-
         X_test = [x[:-1] for x in test_set]
         Y_test = [y[-1] for y in test_set]
 
         train = (X_train, Y_train)
         test = (X_test, Y_test)
 
-        '''
-        params = { 
-            'degree': [3, 4, 5], 
-            'gamma': ['auto', 'scale']
-        }
-        '''
-
         for kernel in ['rbf', 'linear', 'poly', 'sigmoid']:
             
             if kernel == 'poly':
                 for degree in [3, 4, 5]:
-                    svm_clf(train, test, kernel = kernel, degree = degree)
+                    key = 'poly_degree' + str(degree)
+                    # part 1 SVMs
+                    acc, time_elapsed = svm_clf(train, test, kernel = kernel, degree = degree)
+                    results[key][0].append(acc)
+                    results[key][1].append(time_elapsed)
 
-            for gamma in ['auto', 'scale']:
-                svm_clf(train, test, kernel = kernel, gamma = gamma)
+                    # part 2 SVMs (same as part1 but with one vs. rest)
+                    acc, time_elapsed = svm_clf(train, test, kernel = kernel, degree = degree, ovr = True)
+                    results[key][0].append(acc)
+                    results[key][1].append(time_elapsed)
+
+
+            for gamma in [0.01, 0.1, 1, 10, 100]:
+                key = kernel + '_' + gamma
+                # part 1 SVMs
+                acc, time_elapsed = svm_clf(train, test, kernel = kernel, gamma = gamma)
+                results[key][0].append(acc)
+                results[key][1].append(time_elapsed)
+
+                acc, time_elapsed = svm_clf(train, test, kernel = kernel, ovr = True)
+                results[key][0].append(acc)
+                results[key][1].append(time_elapsed)
+
+            for c in [0.01, 0.1, 1, 10, 100]:
+                key = kernel + '_c_' + str(c)
+
+                acc, time_elapsed = svm_clf(train, test, kernel = kernel, c = c)
+                results[key][0].append(acc)
+                results[key][1].append(time_elapsed)
+
+                acc, time_elapsed = svm_clf(train, test, kernel = kernel, c = c, ovr = True)
+                results[key][0].append(acc)
+                results[key][1].append(time_elapsed)
+
+    print('\n\nOne vs. One results: \n')
+    for key, item in results.items():
+        #print(key + ': ', item)
+        print(key + ' avg. accuracy over 5 folds: ', np.mean(item[0][::2]))
+        print(key + ' avg. training time over 5 folds: ', np.mean(item[1][::2]))
+
+
+    print('\n\nOne vs. Rest results: \n')
+    for key, item in results.items():
+        print(key + ' one-vs-rest accuracy (avg): ', np.mean(item[0][1::2]))
+        print(key + ' one-vs-rest training time (avg): ', np.mean(item[1][1::2]))
+
 
 
 kernel_testing(dataset)
