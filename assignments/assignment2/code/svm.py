@@ -133,7 +133,7 @@ def kernel_testing(dataset):
 
         for kernel in ['rbf', 'linear', 'poly', 'sigmoid']:
 
-            for gamma in [0.01, 0.1, 1, 10, 100]:
+            for gamma in [0.001, 0.01, 0.1, 1, 10]:
 
                 for c in [0.01, 0.1, 1, 10, 100]:
 
