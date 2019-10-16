@@ -1,14 +1,21 @@
 import csv
 from sklearn import svm
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.multiclass import OneVsOneClassifier
+from sklearn.model_selection import GridSearchCV
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 import itertools
+from collections import Counter
 import time
+
+import os
 
 # in case FutureWarning messages show for deprecations of 'gamma'
 from warnings import simplefilter
 simplefilter(action = 'ignore', category = FutureWarning)
+simplefilter(action = 'ignore', category = DeprecationWarning)
 
 def load_dataset():
     with open('../Data/glass.data') as f:
@@ -35,94 +42,69 @@ def generate_k_folds(dataset, k = 5):
 
     for fold in range(k):
         for row in dataset:
+            # exclude first column since it is not part of the feature vector
             X[fold].append(list(map(float, row[1:-1])))
             Y[fold].append(int(row[-1]))
 
+    # evenly split dataset into k partitions
     avg, mod = divmod(len(dataset), k)
 
     folds = list(dataset[i * avg + min(i, mod):(i + 1) * avg + min(i + 1, mod)] for i in range(k))
 
     return folds
 
-def train_svm(train, test, kernel_type, class_weights = None, decision_fn_shape = 'ovo'):
+import seaborn as sns
+import pandas as pd
 
-    train_X, train_Y = train
-    test_X, test_Y = test
+# this function is based on https://stackoverflow.com/a/55766938/9464919, where 
+# the user demonstrates creating plots of gridsearch parameters
 
-    if class_weights:
-        clf = svm.SVC(
-            kernel = kernel_type, 
-            class_weight = class_weights, 
-            decision_function_shape = decision_fn_shape
-            )
-
-    else:
-        clf =  svm.SVC(
-            kernel = kernel_type, 
-            decisidecision_function_shape = decision_fn_shape
-            )
-
-    clf.fit(train_X, train_Y)
-
-    predictions = []
-    print('Predictions')
-
-    for sample in test_X:
-        pred = clf.predict(sample)
-        predictions.append(pred)
-        print(pred)
-
-    params = clf.get_params()
-
-def svm_clf(train, test, kernel, c = None, degree = 3, gamma = 'auto', class_weights = None, ovr = False):
+# here, param_x appears on the x-axis, param_z appears on the lines (varied by color), and the mean_test_score (aka validation accuracy)
+# is used as the dependent variable (on the y-axis)
+def plot_cv_results(cv_results, param_x, param_z, metric='mean_test_score'):
     
+    cv_results = pd.DataFrame(cv_results)
+    col_x = 'param_' + param_x
+    col_z = 'param_' + param_z
+    fig, ax = plt.subplots(1, 1, figsize=(11, 8))
+    sns.pointplot(x=col_x, y=metric, hue=col_z, data=cv_results, ci=99, n_boot=64, ax=ax)
+    ax.set_title("CV Grid Search Results")
+    ax.set_xlabel(param_x)
+    ax.set_ylabel(metric)
+    ax.legend(title=param_z)
     
-    if kernel == 'poly':
-        print('\n\nUsing kernel POLY with gamma = {} and degree = {}'.format(gamma, degree))
+    return fig
 
-    else:
-        print('\n\nUsing kernel {} with gamma = {}'.format(kernel.upper(), gamma))
-    
-    
-    X_train, Y_train = train
-    X_test, Y_test = test
-
-    start = time.time()
-
-    if not ovr:        
-        clf = svm.SVC(kernel = kernel, degree = degree, class_weight = class_weights)
-
-    else:
-        clf = OneVsRestClassifier(svm.SVC(kernel = kernel, degree = degree, class_weight = class_weights))
-    clf.fit(X_train, Y_train)
-
-    time_elapsed = time.time() - start
-
-    preds = clf.predict(X_test)
-
-    #print('Predictions: \n', preds)
-    #print('\n\nY_test: \n', Y_test)
-
-    correct = 0
-
-    for i in range(len(Y_test)):
-        if Y_test[i] == preds[i]:
-            correct += 1
-
-    acc = correct / len(Y_test)
-
-    #print('Accuracy: ', acc)
-
-    return acc * 100, time_elapsed
-
-# function to perform all the actions of step 1 of the assignment
+# function to perform the actions of each step of the assignment (labeled below)
 def kernel_testing(dataset):
     folds = generate_k_folds(dataset, k = 5)
 
-    # results for each hyperparameter are in the form ([accuracies], [training times])
-    results = {}
+    best_params = {
+        'C': [], 
+        'kernel': [], 
+        'gamma': [], 
+        'degree': []
+    }
+
+    results = {
+        'ovo_acc': [], 
+        'ovo_time': [], 
+        'ovr_acc': [], 
+        'ovr_time': [], 
+        'balanced_ovo_acc': [], 
+        'balanced_ovo_time': [], 
+        'balanced_ovr_acc': [], 
+        'balanced_ovr_time': []
+    }
+
+    # directory for all created figures
+    os.makedirs('figures', exist_ok = True)
+
+    # step 1: K-fold CV, grid search for hyperparameter optimization
 
     for i, fold in enumerate(folds):
+
+        print('\nFOLD {}: '.format(i + 1))
 
         training_set = list(itertools.chain.from_iterable(folds[:i] +  folds[i + 1:]))
         test_set = fold
@@ -132,74 +114,170 @@ def kernel_testing(dataset):
         X_test = [x[:-1] for x in test_set]
         Y_test = [y[-1] for y in test_set]
 
-        train = (X_train, Y_train)
-        test = (X_test, Y_test)
+        params = {
+            'kernel': ['rbf', 'poly', 'linear', 'sigmoid'], 
+            'gamma': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1], 
+            'C': [0.01, 0.1, 1, 10, 100], 
+            'degree': [2, 3, 4]
+        }
 
-        for kernel in ['rbf', 'linear', 'poly', 'sigmoid']:
+        svc = svm.SVC()
 
-            for gamma in [0.001, 0.01, 0.1, 1, 10]:
+        clf = GridSearchCV(svc, params, cv = 5)
+        clf.fit(X_train, Y_train)
 
-                for c in [0.01, 0.1, 1, 10, 100]:
+        print('Best params for curr fold: ', clf.best_params_)
+        for key in clf.best_params_.keys():
+            best_params[key].append(clf.best_params_[key])
 
-                    if kernel == 'poly':
-                        for degree in [3, 4, 5]:
+        print('GridSearch optimal param validation accuracy: ', max(clf.cv_results_['mean_test_score']))
+        print('\n\n')
 
-                            key = 'poly_degree=' + str(degree) + '_c=' + str(c) + '_gamma=' + str(gamma)
+        opt_svm = svm.SVC(
+            C = clf.best_params_['C'], 
+            kernel = clf.best_params_['kernel'], 
+            gamma = clf.best_params_['gamma'], 
+            degree = clf.best_params_['degree']        
+        )
 
-                            for ovr in [False, True]:
 
-                                if ovr:
-                                    key += '_ovr'
+        fig = plot_cv_results(clf.cv_results_, 'gamma', 'C')
+        plt.savefig('figures/fold{}_gamma_c.png'.format(i + 1))
+        fig = plot_cv_results(clf.cv_results_, 'C', 'gamma')
+        plt.savefig('figures/fold{}_c_gamma.png'.format(i + 1))
 
-                                acc, time_elapsed = svm_clf(
-                                    train, 
-                                    test, 
-                                    kernel = kernel, 
-                                    c = c, 
-                                    degree = degree, 
-                                    gamma = gamma, 
-                                    ovr = ovr
-                                )
 
-                                results.setdefault(key, ([], []))
+        # part 2: comparisons between OvO and OvR classifiers (acc. and training time)
 
-                                results[key][0].append(acc)
-                                results[key][1].append(time_elapsed)
+        ovo_svm = OneVsOneClassifier(opt_svm)
 
-                    else:
-                        key = kernel + '_c=' + str(c) + '_gamma=' + str(gamma)
+        start = time.time()
+        ovo_svm.fit(X_train, Y_train)
+        elapsed_ovo = time.time() - start
 
-                        for ovr in [False, True]:
-                            
-                            if ovr:
-                                key += '_ovr'
+        preds = ovo_svm.predict(X_test)
 
-                            acc, time_elapsed = svm_clf(
-                                train, 
-                                test, 
-                                kernel = kernel, 
-                                c = c, 
-                                gamma = gamma, 
-                                ovr = ovr
-                            )
+        correct = 0
 
-                            results.setdefault(key, ([], []))
+        for i in range(len(preds)):
+            if preds[i] == Y_test[i]:
+                correct +=  1
 
-                            results[key][0].append(acc)
-                            results[key][1].append(time_elapsed)
+        acc_ovo = correct / len(preds)
 
-    print('\n\nOne vs. One results: \n')
+        opt_svm = svm.SVC(
+            C = clf.best_params_['C'], 
+            kernel = clf.best_params_['kernel'], 
+            gamma = clf.best_params_['gamma'], 
+            degree = clf.best_params_['degree']
+        )
+
+        ovr_svm = OneVsRestClassifier(opt_svm)
+
+        start = time.time()
+        ovr_svm.fit(X_train, Y_train)
+        elapsed_ovr = time.time() - start
+
+        preds = ovr_svm.predict(X_test)
+
+        correct = 0
+
+        for i in range(len(preds)):
+            if preds[i] == Y_test[i]:
+                correct += 1
+
+        acc_ovr = correct / len(preds)
+
+        print('Accuracy (OVO): ', acc_ovo)
+        print('Accuracy (OVR): ', acc_ovr)
+
+        results['ovo_acc'].append(acc_ovo)
+        results['ovr_acc'].append(acc_ovr)
+
+        print('Training time (OVO): ', elapsed_ovo)
+        print('Training time (OVR): ', elapsed_ovr)
+
+        results['ovo_time'].append(elapsed_ovo)
+        results['ovr_time'].append(elapsed_ovr)
+
+        # part 4
+        opt_svm_balanced = svm.SVC(
+            C = clf.best_params_['C'], 
+            kernel = clf.best_params_['kernel'], 
+            gamma = clf.best_params_['gamma'], 
+            degree = clf.best_params_['degree'], 
+            class_weight = 'balanced'
+        )
+
+        start = time.time()
+        opt_svm_balanced.fit(X_train, Y_train)
+        elapsed_balanced = time.time() - start
+
+        preds = opt_svm_balanced.predict(X_test)
+
+        correct = 0
+
+        for i in range(len(preds)):
+            if preds[i] == Y_test[i]:
+                correct += 1
+
+        acc_balanced = correct / len(preds)
+
+        print('Accuracy (balanced): ', acc_balanced)
+        print('Training time (balanced): ', elapsed_balanced)
+
+        results['balanced_ovo_acc'].append(acc_balanced)
+        results['balanced_ovo_time'].append(elapsed_balanced)
+
+        opt_svm_balanced_ovr = svm.SVC(
+            C = clf.best_params_['C'], 
+            kernel = clf.best_params_['kernel'], 
+            gamma = clf.best_params_['gamma'], 
+            degree = clf.best_params_['degree'], 
+            class_weight = 'balanced'
+        )
+
+        balanced_ovr_svm = OneVsRestClassifier(opt_svm_balanced_ovr)
+        
+        start = time.time()
+        balanced_ovr_svm.fit(X_train, Y_train)
+        elapsed_balanced_ovr = time.time() - start
+
+        preds = balanced_ovr_svm.predict(X_test)
+
+        correct = 0
+
+        for i in range(len(preds)):
+            if preds[i] == Y_test[i]:
+                correct += 1
+
+        acc_balanced_ovr = correct / len(preds)
+
+        print('Accuracy (balanced OvR): ', acc_balanced_ovr)
+        print('Training time (balanced OvR): ', elapsed_balanced_ovr)
+
+        results['balanced_ovr_acc'].append(acc_balanced_ovr)
+        results['balanced_ovr_time'].append(elapsed_balanced_ovr)
+
+
+    # compute averages across each fold, per step
+    print('\n\nAverage performances across 5-folds:\n')
+
     for key, item in results.items():
-        #print(key + ': ', item)
-        print(key + ' avg. acc.: ', np.mean(item[0][::2]))
-        print(key + ' avg. training time: ', np.mean(item[1][::2]))
+        print('Avg. {}: {}'.format(key, np.mean(item)))
 
 
-    print('\n\nOne vs. Rest results: \n')
-    for key, item in results.items():
-        print(key + ' OvR accuracy (avg): ', np.mean(item[0][1::2]))
-        print(key + ' OvR training time (avg): ', np.mean(item[1][1::2]))
+    optimal = {}
 
+    # not part of the assignment, but was interesting to find out
+    # select the most used parameters for each category (popular vote)
+    for key in best_params.keys():
+        val, count = Counter(best_params[key]).most_common()[0]
+        optimal[key] = val
+
+    
+    print('\n\nOPTIMAL PARAMETERS: \n', optimal)
+    
 
 
 kernel_testing(dataset)
