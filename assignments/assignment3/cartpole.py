@@ -1,4 +1,4 @@
-'''
+
 import random
 import gym
 import numpy as np
@@ -63,6 +63,7 @@ class DQNSolver:
 
 def cartpole():
     env = gym.make(ENV_NAME)
+    env._max_episode_steps = 5000
     score_logger = ScoreLogger(ENV_NAME)
     observation_space = env.observation_space.shape[0]
     action_space = env.action_space.n
@@ -78,7 +79,7 @@ def cartpole():
             env.render()
             action = dqn_solver.act(state)
             state_next, reward, terminal, info = env.step(action)
-            #reward = reward if not terminal else -reward
+            reward = reward if not terminal else -reward
             state_next = np.reshape(state_next, [1, observation_space])
             dqn_solver.remember(state, action, reward, state_next, terminal)
             state = state_next
@@ -91,6 +92,8 @@ def cartpole():
 
 if __name__ == "__main__":
     cartpole()
+
+
 
 '''
 import numpy as np
@@ -146,14 +149,14 @@ class DQNAgent:
         self.gamma = 0.95    # discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.993
         self.learning_rate = 0.001
         self.model = self._build_model()
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
-        model.add(Dense(24, input_dim=self.state_size, activation='relu'))
-        model.add(Dense(24, activation='relu'))
+        model.add(Dense(48, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(48, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
@@ -182,3 +185,4 @@ class DQNAgent:
             self.epsilon *= self.epsilon_decay
 
 cartpole()
+'''
