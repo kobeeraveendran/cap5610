@@ -7,6 +7,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 
+from gym import wrappers
 
 from scores.score_logger import ScoreLogger
 
@@ -64,6 +65,7 @@ class DQNSolver:
 def cartpole():
     env = gym.make(ENV_NAME)
     env._max_episode_steps = 5000
+    env = wrappers.Monitor(env, './gym-results', force = True)
     score_logger = ScoreLogger(ENV_NAME)
     observation_space = env.observation_space.shape[0]
     action_space = env.action_space.n
